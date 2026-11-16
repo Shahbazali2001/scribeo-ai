@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  ocr-service:
+    build:
+      context: ./ocr-service
+    ports:
+      - "8000:8000"
+    environment:
+      - OCR_API_KEY=${OCR_SERVICE_KEY:-dev-ocr-secret-key}
+      - TROCR_MODEL=microsoft/trocr-base-handwritten
+      - DOCTR_DET_ARCH=db_mobilenet_v3_large
+      - MAX_CONCURRENCY=1
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./scribeo_dev.db}
+      - OCR_SERVICE_URL=http://ocr-service:8000
+      - OCR_SERVICE_KEY=${OCR_SERVICE_KEY:-dev-ocr-secret-key}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - DAILY_SCAN_LIMIT=30
+      - DAILY_SUMMARY_LIMIT=20
+    depends_on:
+      - ocr-service
