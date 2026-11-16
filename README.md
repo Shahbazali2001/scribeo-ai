@@ -34,7 +34,7 @@ A React Native mobile app (iOS and Android) that reads **handwritten English tex
 ## Status
 
 | Part | State | Notes |
-|---|---|---|
+| --- | --- | --- |
 | UI design (Figma) | Core done | 14 core screens. Still to design: forgot password, delete confirmations, offline and upload-failed states, splash screen, dark mode |
 | Requirements (FRD v1.2) | Done | About 90 numbered requirements, 52 edge cases, acceptance criteria |
 | OCR model service (`ocr-service/`) | Scaffolded | FastAPI + docTR line detection + TrOCR. Unit tests pass using a fake engine. Run it with the real model weights on your machine to validate accuracy and speed |
@@ -126,7 +126,7 @@ Key decisions:
 ## Tech stack
 
 | Layer | Choice | Notes |
-|---|---|---|
+| --- | --- | --- |
 | Mobile | React Native with **Expo** (development build), Expo Router, TypeScript | Google sign-in needs native code, so Expo Go is not enough |
 | Mobile state and data | TanStack Query, Zustand, React Hook Form + Zod | |
 | Mobile device features | `expo-camera`, `expo-image-picker`, `expo-image-manipulator`, `expo-secure-store`, `expo-clipboard`, `expo-speech`, `expo-haptics` | |
@@ -265,7 +265,7 @@ Create a development build with Expo EAS (`eas build --profile development`) the
 ### `ocr-service/.env`
 
 | Variable | Purpose | Default |
-|---|---|---|
+| --- | --- | --- |
 | `OCR_API_KEY` | Shared secret the backend sends in `X-API-Key` | required |
 | `TROCR_MODEL` | Recognition model | `microsoft/trocr-small-handwritten` in the scaffold; set `microsoft/trocr-base-handwritten` for the planned primary model |
 | `DOCTR_DET_ARCH` | Line detector | `db_mobilenet_v3_large` |
@@ -276,7 +276,7 @@ Create a development build with Expo EAS (`eas build --profile development`) the
 ### `backend/.env` (planned)
 
 | Variable | Purpose |
-|---|---|
+| --- | --- |
 | `DATABASE_URL` | Postgres connection string |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SERVICE_KEY` | Server-side key for storage operations. **Never ship it in the app** |
@@ -292,7 +292,7 @@ Create a development build with Expo EAS (`eas build --profile development`) the
 ### `mobile/.env` (planned)
 
 | Variable | Purpose |
-|---|---|
+| --- | --- |
 | `EXPO_PUBLIC_API_URL` | Backend base URL |
 | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Public Supabase settings for the auth SDK |
 | `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID` | Google sign-in client IDs |
@@ -306,7 +306,7 @@ Anything prefixed `EXPO_PUBLIC_` is visible to users. Never put secrets there.
 Base path `/api/v1`. All endpoints except `/health` need `Authorization: Bearer <token>`.
 
 | Method | Path | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/me` | Profile, stats and latest scans for the dashboard |
 | PATCH | `/me` | Update display name and settings |
 | DELETE | `/me` | Delete the account and all data (recent sign-in required) |
@@ -333,7 +333,7 @@ Conventions: JSON, UTC dates, one error shape with stable codes (`NOT_ENGLISH`, 
 PostgreSQL is the system of record. Credentials and sessions live in Supabase Auth.
 
 | Table | Key fields |
-|---|---|
+| --- | --- |
 | `profiles` | id (same as auth user id), display_name, settings, created_at |
 | `scans` | id, user_id, image_path, image_width, image_height, text, text_version, word_count, confidence, ocr_model_version, language, language_confidence, status (processing, done, failed), idempotency_key, created_at, updated_at |
 | `summaries` | id, scan_id, style, text, text_version, summary_model, created_at |
@@ -375,7 +375,7 @@ The app reads **English handwriting only**. Highlights (the full list of 52 case
 **Data sources**
 
 | Source | Use | Note |
-|---|---|---|
+| --- | --- | --- |
 | IAM Handwriting Database | English handwritten lines | Free for non-commercial research only |
 | CVL Database | English and German handwritten texts (use the English parts) | Non-commercial license |
 | Synthetic lines (TextRecognitionDataGenerator, TRDG) | Handwriting-style fonts, varied backgrounds, blur, rotation, noise | Check each font license |
@@ -459,8 +459,8 @@ An indicative effort for one developer working part time is 8 to 10 weeks.
 
 ## Project documents
 
-- **Functional Requirements Document (v1.2):** https://claude.ai/artifact/DzszwkfFp1yNoJMc1DuLw5
-- **Figma UI design (14 core screens):** https://www.figma.com/design/mKqpQZ8mmqdqATugOmiBYc
+- **Functional Requirements Document (v1.2):** <https://docs.google.com/document/d/1RcBEM6mAaRk_a3orjlRN0aHq4UhbjVvZca6VXs-z0bs/edit?usp=sharing>
+- **Figma UI design (14 core screens):** <https://www.figma.com/design/mKqpQZ8mmqdqATugOmiBYc>
 
 ---
 
