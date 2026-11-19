@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -17,6 +18,24 @@ import { useAppTheme } from '@/hooks/use-app-theme';
 import { triggerHaptic } from '@/lib/device';
 import { appStore } from '@/store/app-store';
 
+const GOOGLE_PRESET_ACCOUNTS = [
+  {
+    email: 'alex.morgan@gmail.com',
+    displayName: 'Alex Morgan',
+    badge: 'Personal',
+  },
+  {
+    email: 'shahbaz.ali@gmail.com',
+    displayName: 'Shahbaz Ali',
+    badge: 'Developer',
+  },
+  {
+    email: 'research.team@scribeo.ai',
+    displayName: 'Scribeo Research',
+    badge: 'Workspace',
+  },
+];
+
 export default function LoginScreen() {
   const router = useRouter();
   const palette = useAppTheme();
@@ -27,6 +46,13 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Google Account Picker modal state
+  const [googleModalVisible, setGoogleModalVisible] = useState(false);
+  const [showCustomGoogleForm, setShowCustomGoogleForm] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleName, setGoogleName] = useState('');
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const toggleTheme = () => {
     const next = palette.isDark ? 'light' : 'dark';
@@ -51,11 +77,41 @@ export default function LoginScreen() {
     router.replace('/(tabs)' as never);
   };
 
-  const handleGoogleLogin = async () => {
+  const handleOpenGooglePicker = async () => {
     setError(null);
+    setGoogleError(null);
+    setShowCustomGoogleForm(false);
+    await triggerHaptic('light');
+    setGoogleModalVisible(true);
+  };
+
+  const handleSelectGoogleAccount = async (selectedEmail: string, selectedName: string) => {
+    setGoogleError(null);
+    const result = appStore.signInWithGoogle({
+      email: selectedEmail,
+      displayName: selectedName,
+    });
+
+    if (!result.ok) {
+      await triggerHaptic('error');
+      setGoogleError(result.error || 'Could not sign in with Google.');
+      return;
+    }
+
+    setGoogleModalVisible(false);
     await triggerHaptic('success');
-    appStore.signInWithGoogle();
     router.replace('/(tabs)' as never);
+  };
+
+  const handleCustomGoogleSubmit = async () => {
+    setGoogleError(null);
+    const cleanEmail = googleEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      await triggerHaptic('error');
+      setGoogleError('Please enter a valid Google email address.');
+      return;
+    }
+    await handleSelectGoogleAccount(cleanEmail, googleName.trim());
   };
 
   const handleQuickDemo = async () => {
@@ -219,7 +275,7 @@ export default function LoginScreen() {
 
             <View style={styles.socialRow}>
               <Pressable
-                onPress={handleGoogleLogin}
+                onPress={handleOpenGooglePicker}
                 style={[
                   styles.secondaryBtn,
                   { backgroundColor: palette.bgInput, borderColor: palette.border },
@@ -255,6 +311,184 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Interactive Google Account Selector Modal */}
+      <Modal
+        visible={googleModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGoogleModalVisible(false)}>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setGoogleModalVisible(false)}>
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              styles.modalCard,
+              { backgroundColor: palette.bgCard, borderColor: palette.border },
+            ]}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.googleBadge, { backgroundColor: palette.primarySoft }]}>
+                <Text style={[styles.googleBadgeLetter, { color: palette.primary }]}>G</Text>
+              </View>
+              <View style={styles.flex}>
+                <Text style={[styles.modalTitle, { color: palette.text }]}>
+                  Choose an account
+                </Text>
+                <Text style={[styles.modalSubtitle, { color: palette.textSecondary }]}>
+                  to continue to Scribeo AI
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setGoogleModalVisible(false)}
+                style={styles.closeBtn}>
+                <Text style={{ color: palette.textMuted, fontSize: 18, fontWeight: '700' }}>
+                  ✕
+                </Text>
+              </Pressable>
+            </View>
+
+            {googleError ? (
+              <View
+                style={[
+                  styles.errorBox,
+                  { backgroundColor: palette.dangerSoft, borderColor: palette.danger },
+                ]}>
+                <Text style={[styles.errorText, { color: palette.danger }]}>
+                  ⚠️ {googleError}
+                </Text>
+              </View>
+            ) : null}
+
+            {!showCustomGoogleForm ? (
+              <View style={styles.accountList}>
+                {GOOGLE_PRESET_ACCOUNTS.map((acct) => {
+                  const initials = acct.displayName
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .slice(0, 2);
+                  return (
+                    <Pressable
+                      key={acct.email}
+                      onPress={() => handleSelectGoogleAccount(acct.email, acct.displayName)}
+                      style={({ pressed }) => [
+                        styles.accountRow,
+                        {
+                          backgroundColor: pressed ? palette.primarySoft : palette.bgInput,
+                          borderColor: palette.border,
+                        },
+                      ]}>
+                      <View style={[styles.avatarCircle, { backgroundColor: palette.primary }]}>
+                        <Text style={styles.avatarText}>{initials}</Text>
+                      </View>
+                      <View style={styles.flex}>
+                        <Text style={[styles.accountName, { color: palette.text }]}>
+                          {acct.displayName}
+                        </Text>
+                        <Text style={[styles.accountEmail, { color: palette.textSecondary }]}>
+                          {acct.email}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.accountTag,
+                          { backgroundColor: palette.primarySoft, borderColor: palette.border },
+                        ]}>
+                        <Text style={[styles.accountTagText, { color: palette.primary }]}>
+                          {acct.badge}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+
+                <Pressable
+                  onPress={() => {
+                    setGoogleError(null);
+                    setShowCustomGoogleForm(true);
+                  }}
+                  style={[
+                    styles.useAnotherRow,
+                    { borderColor: palette.border, backgroundColor: palette.bg },
+                  ]}>
+                  <Text style={[styles.useAnotherText, { color: palette.primary }]}>
+                    + Use another Google account
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.customGoogleForm}>
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: palette.textSecondary }]}>
+                    GOOGLE EMAIL
+                  </Text>
+                  <TextInput
+                    value={googleEmail}
+                    onChangeText={setGoogleEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    placeholder="your.name@gmail.com"
+                    placeholderTextColor={palette.textMuted}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: palette.bgInput,
+                        borderColor: palette.border,
+                        color: palette.text,
+                      },
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: palette.textSecondary }]}>
+                    DISPLAY NAME (OPTIONAL)
+                  </Text>
+                  <TextInput
+                    value={googleName}
+                    onChangeText={setGoogleName}
+                    placeholder="Your Full Name"
+                    placeholderTextColor={palette.textMuted}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: palette.bgInput,
+                        borderColor: palette.border,
+                        color: palette.text,
+                      },
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.socialRow}>
+                  <Pressable
+                    onPress={() => {
+                      setGoogleError(null);
+                      setShowCustomGoogleForm(false);
+                    }}
+                    style={[
+                      styles.secondaryBtn,
+                      { backgroundColor: palette.bgInput, borderColor: palette.border },
+                    ]}>
+                    <Text style={[styles.secondaryBtnText, { color: palette.text }]}>
+                      ← Back
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={handleCustomGoogleSubmit}
+                    style={[styles.secondaryBtn, { backgroundColor: palette.primary, borderColor: palette.primary }]}>
+                    <Text style={[styles.secondaryBtnText, { color: '#FFFFFF' }]}>
+                      Continue →
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -382,4 +616,72 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
   footerLink: { fontSize: 14, fontWeight: '800' },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 22,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 18,
+  },
+  googleBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleBadgeLetter: { fontSize: 22, fontWeight: '900' },
+  modalTitle: { fontSize: 18, fontWeight: '800' },
+  modalSubtitle: { fontSize: 13, marginTop: 2 },
+  closeBtn: { padding: 6 },
+  accountList: { gap: 10 },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  avatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  accountName: { fontSize: 14, fontWeight: '700' },
+  accountEmail: { fontSize: 12, marginTop: 2 },
+  accountTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  accountTagText: { fontSize: 10, fontWeight: '700' },
+  useAnotherRow: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  useAnotherText: { fontSize: 13, fontWeight: '700' },
+  customGoogleForm: { marginTop: 4 },
 });
