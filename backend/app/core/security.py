@@ -24,10 +24,22 @@ async def get_current_user(
 
     token = authorization.removeprefix("Bearer ").strip()
 
-    # Support dev/test tokens during local development
-    if token.startswith("sb-demo-jwt") or token.startswith("test-token-"):
-        user_id = token.replace("test-token-", "") if token.startswith("test-token-") else "user-demo-1"
-        return AuthenticatedUser(id=user_id, email="alex.morgan@example.com")
+    # Support dev/test and local app tokens (email & Google sign-in) during development
+    if (
+        token.startswith("sb-demo-jwt")
+        or token.startswith("sb-google-jwt")
+        or token.startswith("sb-jwt")
+        or token.startswith("test-token-")
+    ):
+        parts = token.split("::")
+        if len(parts) >= 3:
+            return AuthenticatedUser(id=parts[1], email=parts[2])
+        if token.startswith("test-token-"):
+            user_id = token.replace("test-token-", "")
+            return AuthenticatedUser(id=user_id, email="alex.morgan@example.com")
+        if token.startswith("sb-google-jwt"):
+            return AuthenticatedUser(id="user-google-1", email="alex.morgan@gmail.com")
+        return AuthenticatedUser(id="user-demo-1", email="alex.morgan@example.com")
 
     try:
         payload = jwt.decode(
