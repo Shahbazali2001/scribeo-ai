@@ -44,6 +44,21 @@ export default function RegisterScreen() {
     router.replace('/(tabs)' as never);
   };
 
+  const handleGoogleRegister = async () => {
+    setError(null);
+    const res = appStore.signInWithGoogle({
+      email: email.trim() || 'alex.morgan@gmail.com',
+      displayName: displayName.trim() || 'Alex Morgan',
+    });
+    if (!res.ok) {
+      await triggerHaptic('error');
+      setError(res.error || 'Could not sign up with Google.');
+      return;
+    }
+    await triggerHaptic('success');
+    router.replace('/(tabs)' as never);
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.bg }]}>
       <KeyboardAvoidingView
@@ -174,6 +189,17 @@ export default function RegisterScreen() {
               style={[styles.primaryBtn, { backgroundColor: palette.primary }]}>
               <Text style={styles.primaryBtnText}>Create Free Account →</Text>
             </Pressable>
+
+            <Pressable
+              onPress={handleGoogleRegister}
+              style={[
+                styles.googleBtn,
+                { backgroundColor: palette.bgInput, borderColor: palette.border },
+              ]}>
+              <Text style={[styles.googleBtnText, { color: palette.text }]}>
+                🌐 Sign up with Google
+              </Text>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -227,4 +253,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   primaryBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  googleBtn: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  googleBtnText: { fontSize: 13, fontWeight: '700' },
 });
