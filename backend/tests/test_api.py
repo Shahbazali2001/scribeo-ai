@@ -58,3 +58,12 @@ def test_end_to_end_scan_and_summary():
         )
         assert edit_res.status_code == 200
         assert edit_res.json()["textVersion"] == 2
+
+        # 6. Verify Google Sign-In token works with /api/v1/me
+        google_headers = {
+            "Authorization": "Bearer sb-google-jwt-123::user-google-1::alex.morgan@gmail.com"
+        }
+        me_res = client.get("/api/v1/me", headers=google_headers)
+        assert me_res.status_code == 200
+        assert me_res.json()["profile"]["id"] == "user-google-1"
+        assert me_res.json()["profile"]["email"] == "alex.morgan@gmail.com"
