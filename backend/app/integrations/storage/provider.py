@@ -16,6 +16,7 @@ class SupabaseStorageProvider:
     async def upload_private_image(self, path: str, content: bytes, content_type: str) -> str:
         url = f"{settings.supabase_url.rstrip('/')}/storage/v1/object/{settings.storage_bucket}/{path}"
         headers = {
+            "apikey": settings.supabase_service_key,
             "Authorization": f"Bearer {settings.supabase_service_key}",
             "Content-Type": content_type,
             "x-upsert": "true",
@@ -26,7 +27,10 @@ class SupabaseStorageProvider:
 
     async def get_signed_url(self, path: str, expires_in: int = 3600) -> str:
         url = f"{settings.supabase_url.rstrip('/')}/storage/v1/object/sign/{settings.storage_bucket}/{path}"
-        headers = {"Authorization": f"Bearer {settings.supabase_service_key}"}
+        headers = {
+            "apikey": settings.supabase_service_key,
+            "Authorization": f"Bearer {settings.supabase_service_key}",
+        }
         async with httpx.AsyncClient(timeout=15.0) as client:
             res = await client.post(url, headers=headers, json={"expiresIn": expires_in})
             if res.status_code == 200:
@@ -36,7 +40,10 @@ class SupabaseStorageProvider:
 
     async def delete_image(self, path: str) -> None:
         url = f"{settings.supabase_url.rstrip('/')}/storage/v1/object/{settings.storage_bucket}"
-        headers = {"Authorization": f"Bearer {settings.supabase_service_key}"}
+        headers = {
+            "apikey": settings.supabase_service_key,
+            "Authorization": f"Bearer {settings.supabase_service_key}",
+        }
         async with httpx.AsyncClient(timeout=15.0) as client:
             await client.request("DELETE", url, headers=headers, json={"prefixes": [path]})
 

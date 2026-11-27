@@ -112,8 +112,16 @@ async def get_me(
         await db.execute(select(Profile).where(Profile.id == user.id))
     ).scalar_one_or_none()
     if profile is None:
-        profile = Profile(id=user.id, display_name="Alex Morgan")
+        profile = Profile(id=user.id, display_name=user.resolved_display_name)
         db.add(profile)
+        await db.commit()
+        await db.refresh(profile)
+    elif (
+        profile.display_name in {"Alex Morgan", "Scribeo User"}
+        and user.email.lower() != "alex.morgan@example.com"
+        and user.resolved_display_name not in {"Alex Morgan", "Scribeo User"}
+    ):
+        profile.display_name = user.resolved_display_name
         await db.commit()
         await db.refresh(profile)
 
@@ -157,7 +165,7 @@ async def update_me(
         await db.execute(select(Profile).where(Profile.id == user.id))
     ).scalar_one_or_none()
     if profile is None:
-        profile = Profile(id=user.id, display_name="Alex Morgan")
+        profile = Profile(id=user.id, display_name=user.resolved_display_name)
         db.add(profile)
 
     if payload.displayName is not None:

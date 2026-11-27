@@ -12,10 +12,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { apiClient } from '@/api/client';
 import { useAppStore } from '@/hooks/use-app-store';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { triggerHaptic } from '@/lib/device';
-import { appStore } from '@/store/app-store';
 
 type FilterMode = 'all' | 'summarized' | 'low_confidence';
 
@@ -49,7 +49,7 @@ export default function HistoryScreen() {
   const confirmDelete = async () => {
     if (!scanToDelete) return;
     await triggerHaptic('warning');
-    appStore.deleteScan(scanToDelete);
+    await apiClient.deleteScan(scanToDelete);
     setScanToDelete(null);
   };
 

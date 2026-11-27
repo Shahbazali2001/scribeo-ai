@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -23,6 +23,10 @@ export default function DashboardScreen() {
 
   const [bannerError, setBannerError] = useState<string | null>(null);
 
+  useEffect(() => {
+    void appStore.syncFromBackend();
+  }, []);
+
   const recentScans = scans.slice(0, 4);
 
   const toggleTheme = async () => {
@@ -44,7 +48,7 @@ export default function DashboardScreen() {
         imageUri: picked.uri,
         width: picked.width,
         height: picked.height,
-        preset: "long_lecture_notes",
+        isRealPhoto: true,
       });
       if (res.error) {
         setBannerError(res.error.message);
@@ -67,7 +71,7 @@ export default function DashboardScreen() {
         imageUri: picked.uri,
         width: picked.width,
         height: picked.height,
-        preset: "long_lecture_notes",
+        isRealPhoto: true,
       });
       if (res.error) {
         setBannerError(res.error.message);

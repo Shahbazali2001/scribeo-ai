@@ -1,7 +1,13 @@
 import io
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi.testclient import TestClient
+import jwt
 from PIL import Image
 
+from app.core.config import settings
 from app.main import app
 
 
@@ -67,3 +73,51 @@ def test_end_to_end_scan_and_summary():
         assert me_res.status_code == 200
         assert me_res.json()["profile"]["id"] == "user-google-1"
         assert me_res.json()["profile"]["email"] == "alex.morgan@gmail.com"
+
+
+def test_supabase_jwks_es256_verification():
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    public_key = private_key.public_key()
+
+    token = jwt.encode(
+        {
+            "sub": "supabase-user-es256",
+            "email": "es256.user@gmail.com",
+            "aud": settings.supabase_jwt_audience,
+            "iss": settings.resolved_supabase_jwt_issuer,
+        },
+        private_key,
+        algorithm="ES256",
+        headers={"kid": "test-es256-kid"},
+    )
+
+    mock_jwk_client = MagicMock()
+    mock_jwk_client.get_signing_key_from_jwt.return_value = SimpleNamespace(key=public_key)
+
+    with patch("app.core.security._get_jwk_client", return_value=mock_jwk_client):
+        with TestClient(app) as client:
+            res = client.get("/api/v1/me", headers={"Authorization": f"Bearer {token}"})
+            assert res.status_code == 200
+            assert res.json()["profile"]["id"] == "supabase-user-es256"
+            assert res.json()["profile"]["email"] == "es256.user@gmail.com"
+
+
+def test_supabase_legacy_hs256_and_invalid_tokens():
+    valid_hs256 = jwt.encode(
+        {
+            "sub": "supabase-user-hs256",
+            "email": "hs256.user@example.com",
+            "aud": settings.supabase_jwt_audience,
+        },
+        settings.supabase_jwt_secret,
+        algorithm="HS256",
+    )
+
+    with TestClient(app) as client:
+        ok_res = client.get("/api/v1/me", headers={"Authorization": f"Bearer {valid_hs256}"})
+        assert ok_res.status_code == 200
+        assert ok_res.json()["profile"]["id"] == "supabase-user-hs256"
+
+        bad_res = client.get("/api/v1/me", headers={"Authorization": "Bearer not-a-valid-jwt"})
+        assert bad_res.status_code == 401
+

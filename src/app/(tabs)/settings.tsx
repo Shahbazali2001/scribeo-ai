@@ -28,15 +28,18 @@ export default function SettingsScreen() {
   const apiMode = useAppStore((s) => s.apiMode);
   const apiBaseUrl = useAppStore((s) => s.apiBaseUrl);
 
-  const [displayName, setDisplayName] = useState(profile.displayName);
+  const [draftDisplayName, setDraftDisplayName] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState(apiBaseUrl);
   const [savedBanner, setSavedBanner] = useState(false);
   const [deleteAccountModal, setDeleteAccountModal] = useState(false);
+
+  const displayName = draftDisplayName ?? profile.displayName;
 
   const handleSaveName = async () => {
     if (!displayName.trim()) return;
     await triggerHaptic('success');
     await apiClient.updateMe({ displayName: displayName.trim() });
+    setDraftDisplayName(null);
     setSavedBanner(true);
     setTimeout(() => setSavedBanner(false), 2000);
   };
@@ -55,7 +58,8 @@ export default function SettingsScreen() {
   const handleSignOut = async () => {
     await triggerHaptic('light');
     speechManager.stop();
-    appStore.signOut();
+    setDraftDisplayName(null);
+    await appStore.signOut();
     router.replace('/(auth)/login' as never);
   };
 
@@ -158,7 +162,7 @@ export default function SettingsScreen() {
           <View style={styles.nameRow}>
             <TextInput
               value={displayName}
-              onChangeText={setDisplayName}
+              onChangeText={setDraftDisplayName}
               placeholder="Display name"
               placeholderTextColor={palette.textMuted}
               style={[

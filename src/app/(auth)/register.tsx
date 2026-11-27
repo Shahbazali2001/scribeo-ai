@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -25,6 +26,9 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleRegister = async () => {
     setError(null);
@@ -33,7 +37,11 @@ export default function RegisterScreen() {
       return;
     }
 
-    const res = appStore.signUpWithEmail(displayName, email, password);
+    setLoading(true);
+    await triggerHaptic('light');
+    const res = await appStore.signUpWithEmail(displayName, email, password);
+    setLoading(false);
+
     if (!res.ok) {
       await triggerHaptic('error');
       setError(res.error || 'Could not create account.');
@@ -41,23 +49,38 @@ export default function RegisterScreen() {
     }
 
     await triggerHaptic('success');
+    if (res.needsEmailConfirmation) {
+      setNeedsConfirmation(true);
+      return;
+    }
     router.replace('/(tabs)' as never);
   };
 
   const handleGoogleRegister = async () => {
     setError(null);
-    const res = appStore.signInWithGoogle({
-      email: email.trim() || 'alex.morgan@gmail.com',
-      displayName: displayName.trim() || 'Alex Morgan',
-    });
+    setGoogleLoading(true);
+    await triggerHaptic('light');
+
+    const res = await appStore.signInWithGoogle();
+    setGoogleLoading(false);
+
+    if (res.cancelled) {
+      return;
+    }
+
     if (!res.ok) {
       await triggerHaptic('error');
       setError(res.error || 'Could not sign up with Google.');
       return;
     }
+
     await triggerHaptic('success');
-    router.replace('/(tabs)' as never);
+    if (Platform.OS !== 'web') {
+      router.replace('/(tabs)' as never);
+    }
   };
+
+  const busy = loading || googleLoading;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.bg }]}>
@@ -88,118 +111,169 @@ export default function RegisterScreen() {
               styles.card,
               { backgroundColor: palette.bgCard, borderColor: palette.border },
             ]}>
-            {error ? (
+            {needsConfirmation ? (
               <View
                 style={[
-                  styles.errorBox,
-                  { backgroundColor: palette.dangerSoft, borderColor: palette.danger },
+                  styles.successBox,
+                  { backgroundColor: palette.successSoft, borderColor: palette.success },
                 ]}>
-                <Text style={{ color: palette.danger, fontSize: 13, fontWeight: '600' }}>
-                  ⚠️ {error}
+                <Text style={{ color: palette.success, fontSize: 16, fontWeight: '800' }}>
+                  ✓ Check Your Email
                 </Text>
+                <Text
+                  style={{
+                    color: palette.text,
+                    fontSize: 13,
+                    marginTop: 6,
+                    lineHeight: 19,
+                  }}>
+                  We sent a verification link to {email.trim()}. Confirm your email address, then
+                  return to Sign In.
+                </Text>
+                <Pressable
+                  onPress={() => router.replace('/(auth)/login' as never)}
+                  style={[styles.primaryBtn, { backgroundColor: palette.primary, marginTop: 16 }]}>
+                  <Text style={styles.primaryBtnText}>Return to Sign In</Text>
+                </Pressable>
               </View>
-            ) : null}
+            ) : (
+              <>
+                {error ? (
+                  <View
+                    style={[
+                      styles.errorBox,
+                      { backgroundColor: palette.dangerSoft, borderColor: palette.danger },
+                    ]}>
+                    <Text style={{ color: palette.danger, fontSize: 13, fontWeight: '600' }}>
+                      ⚠️ {error}
+                    </Text>
+                  </View>
+                ) : null}
 
-            <View style={styles.fieldGroup}>
-              <Text style={[styles.label, { color: palette.textSecondary }]}>
-                FULL NAME
-              </Text>
-              <TextInput
-                value={displayName}
-                onChangeText={setDisplayName}
-                placeholder="Alex Morgan"
-                placeholderTextColor={palette.textMuted}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: palette.bgInput,
-                    borderColor: palette.border,
-                    color: palette.text,
-                  },
-                ]}
-              />
-            </View>
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: palette.textSecondary }]}>
+                    FULL NAME
+                  </Text>
+                  <TextInput
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                    placeholder="Alex Morgan"
+                    placeholderTextColor={palette.textMuted}
+                    editable={!busy}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: palette.bgInput,
+                        borderColor: palette.border,
+                        color: palette.text,
+                      },
+                    ]}
+                  />
+                </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={[styles.label, { color: palette.textSecondary }]}>
-                EMAIL ADDRESS
-              </Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                placeholder="you@example.com"
-                placeholderTextColor={palette.textMuted}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: palette.bgInput,
-                    borderColor: palette.border,
-                    color: palette.text,
-                  },
-                ]}
-              />
-            </View>
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: palette.textSecondary }]}>
+                    EMAIL ADDRESS
+                  </Text>
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    keyboardType="email-address"
+                    placeholder="you@example.com"
+                    placeholderTextColor={palette.textMuted}
+                    editable={!busy}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: palette.bgInput,
+                        borderColor: palette.border,
+                        color: palette.text,
+                      },
+                    ]}
+                  />
+                </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={[styles.label, { color: palette.textSecondary }]}>
-                PASSWORD (MIN 8 CHARACTERS)
-              </Text>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                placeholder="At least 8 characters"
-                placeholderTextColor={palette.textMuted}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: palette.bgInput,
-                    borderColor: palette.border,
-                    color: palette.text,
-                  },
-                ]}
-              />
-            </View>
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: palette.textSecondary }]}>
+                    PASSWORD (MIN 8 CHARACTERS)
+                  </Text>
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    placeholder="At least 8 characters"
+                    placeholderTextColor={palette.textMuted}
+                    editable={!busy}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: palette.bgInput,
+                        borderColor: palette.border,
+                        color: palette.text,
+                      },
+                    ]}
+                  />
+                </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={[styles.label, { color: palette.textSecondary }]}>
-                CONFIRM PASSWORD
-              </Text>
-              <TextInput
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                placeholder="Re-enter your password"
-                placeholderTextColor={palette.textMuted}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: palette.bgInput,
-                    borderColor: palette.border,
-                    color: palette.text,
-                  },
-                ]}
-              />
-            </View>
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: palette.textSecondary }]}>
+                    CONFIRM PASSWORD
+                  </Text>
+                  <TextInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    placeholder="Re-enter your password"
+                    placeholderTextColor={palette.textMuted}
+                    editable={!busy}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: palette.bgInput,
+                        borderColor: palette.border,
+                        color: palette.text,
+                      },
+                    ]}
+                  />
+                </View>
 
-            <Pressable
-              onPress={handleRegister}
-              style={[styles.primaryBtn, { backgroundColor: palette.primary }]}>
-              <Text style={styles.primaryBtnText}>Create Free Account →</Text>
-            </Pressable>
+                <Pressable
+                  onPress={handleRegister}
+                  disabled={busy}
+                  style={[
+                    styles.primaryBtn,
+                    { backgroundColor: palette.primary, opacity: busy ? 0.7 : 1 },
+                  ]}>
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Create Free Account →</Text>
+                  )}
+                </Pressable>
 
-            <Pressable
-              onPress={handleGoogleRegister}
-              style={[
-                styles.googleBtn,
-                { backgroundColor: palette.bgInput, borderColor: palette.border },
-              ]}>
-              <Text style={[styles.googleBtnText, { color: palette.text }]}>
-                🌐 Sign up with Google
-              </Text>
-            </Pressable>
+                <Pressable
+                  onPress={handleGoogleRegister}
+                  disabled={busy}
+                  style={[
+                    styles.googleBtn,
+                    {
+                      backgroundColor: palette.bgInput,
+                      borderColor: palette.border,
+                      opacity: busy ? 0.7 : 1,
+                    },
+                  ]}>
+                  {googleLoading ? (
+                    <ActivityIndicator color={palette.primary} size="small" />
+                  ) : (
+                    <Text style={[styles.googleBtnText, { color: palette.text }]}>
+                      🌐 Sign up with Google
+                    </Text>
+                  )}
+                </Pressable>
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -230,6 +304,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800' },
   subtitle: { fontSize: 14, marginTop: 4, marginBottom: 20 },
   card: { borderRadius: 24, borderWidth: 1, padding: 22 },
+  successBox: { borderRadius: 16, borderWidth: 1, padding: 16 },
   errorBox: {
     borderWidth: 1,
     borderRadius: 14,

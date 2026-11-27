@@ -9,7 +9,22 @@ class Settings(BaseSettings):
     supabase_service_key: str = "dev-service-key"
     supabase_jwt_secret: str = "dev-jwt-secret"
     supabase_jwt_audience: str = "authenticated"
+    supabase_jwks_url: str = ""
+    supabase_jwt_issuer: str = ""
+    allow_dev_tokens: bool = True
     storage_bucket: str = "scans"
+
+    @property
+    def resolved_supabase_jwks_url(self) -> str:
+        if self.supabase_jwks_url:
+            return self.supabase_jwks_url
+        return f"{self.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+
+    @property
+    def resolved_supabase_jwt_issuer(self) -> str:
+        if self.supabase_jwt_issuer:
+            return self.supabase_jwt_issuer
+        return f"{self.supabase_url.rstrip('/')}/auth/v1"
 
     ocr_service_url: str = "http://localhost:8000"
     ocr_service_key: str = "dev-ocr-secret-key"

@@ -1,4 +1,4 @@
-"""
+a"""
 Fine-tuning script for microsoft/trocr-base-handwritten on phone-photo line crops.
 
 Usage:

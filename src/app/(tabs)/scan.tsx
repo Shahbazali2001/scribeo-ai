@@ -173,6 +173,7 @@ export default function ScanCaptureScreen() {
       preset: selectedPreset,
       customText: customHandwritingText.trim() || undefined,
       idempotencyKey: pendingIdempotencyKey,
+      isRealPhoto: Boolean(selectedPhotoUri),
     });
 
     if (result.error) {

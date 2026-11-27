@@ -32,7 +32,7 @@ class HttpOcrProvider:
     async def read_image(self, image_bytes: bytes, filename: str = "page.jpg") -> OcrServiceOutput:
         url = f"{settings.ocr_service_url.rstrip('/')}/v1/read"
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=180.0) as client:
                 response = await client.post(
                     url,
                     headers={"X-API-Key": settings.ocr_service_key},

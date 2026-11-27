@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -17,15 +18,19 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
   const palette = useAppTheme();
 
-  const [email, setEmail] = useState('alex.morgan@example.com');
-  const [newPassword, setNewPassword] = useState('');
+  const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleReset = async () => {
     setError(null);
-    const res = appStore.resetPassword(email, newPassword || undefined);
+    setLoading(true);
+    const res = await appStore.resetPassword(email);
+    setLoading(false);
+
     if (!res.ok) {
+      await triggerHaptic('error');
       setError(res.error || 'Please enter a valid email address.');
       return;
     }
@@ -54,7 +59,7 @@ export default function ForgotPasswordScreen() {
           ]}>
           <Text style={[styles.title, { color: palette.text }]}>Reset Password</Text>
           <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
-            Enter your account email and optional new password to reset access immediately.
+            Enter your account email and we will send you a Supabase password recovery link.
           </Text>
 
           {sent ? (
@@ -64,7 +69,7 @@ export default function ForgotPasswordScreen() {
                 { backgroundColor: palette.successSoft, borderColor: palette.success },
               ]}>
               <Text style={{ color: palette.success, fontSize: 16, fontWeight: '800' }}>
-                ✓ Password Reset Complete
+                ✓ Reset Link Sent
               </Text>
               <Text
                 style={{
@@ -73,7 +78,8 @@ export default function ForgotPasswordScreen() {
                   marginTop: 6,
                   lineHeight: 19,
                 }}>
-                Your password has been updated for {email}. You can now sign in with your new credentials.
+                If an account exists for {email.trim()}, you will receive an email with
+                instructions to reset your password.
               </Text>
               <Pressable
                 onPress={() => router.replace('/(auth)/login' as never)}
@@ -102,28 +108,11 @@ export default function ForgotPasswordScreen() {
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
+                autoComplete="email"
                 keyboardType="email-address"
                 placeholder="you@example.com"
                 placeholderTextColor={palette.textMuted}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: palette.bgInput,
-                    borderColor: palette.border,
-                    color: palette.text,
-                  },
-                ]}
-              />
-
-              <Text style={[styles.label, { color: palette.textSecondary, marginTop: 14 }]}>
-                NEW PASSWORD (OPTIONAL FOR DEMO RESET)
-              </Text>
-              <TextInput
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry
-                placeholder="Enter new password (min 6 chars)"
-                placeholderTextColor={palette.textMuted}
+                editable={!loading}
                 style={[
                   styles.input,
                   {
@@ -136,8 +125,16 @@ export default function ForgotPasswordScreen() {
 
               <Pressable
                 onPress={handleReset}
-                style={[styles.primaryBtn, { backgroundColor: palette.primary, marginTop: 18 }]}>
-                <Text style={styles.primaryBtnText}>Reset Password</Text>
+                disabled={loading}
+                style={[
+                  styles.primaryBtn,
+                  { backgroundColor: palette.primary, marginTop: 18, opacity: loading ? 0.7 : 1 },
+                ]}>
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.primaryBtnText}>Send Reset Email</Text>
+                )}
               </Pressable>
             </View>
           )}

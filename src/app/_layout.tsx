@@ -15,6 +15,7 @@ import { useEffect } from "react";
 
 import { useAppStore } from "@/hooks/use-app-store";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { appStore } from "@/store/app-store";
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // ignore
@@ -23,22 +24,30 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 export default function RootLayout() {
   const palette = useAppTheme();
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
+  const authInitialized = useAppStore((s) => s.authInitialized);
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
 
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {
-      // ignore
-    });
+    const unsubscribe = appStore.initAuth();
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
-    if (!navigationState?.key) return;
+    if (!authInitialized) return;
+    SplashScreen.hideAsync().catch(() => {
+      // ignore
+    });
+  }, [authInitialized]);
+
+  useEffect(() => {
+    if (!navigationState?.key || !authInitialized) return;
 
     const firstSegment = String(segments[0] ?? "");
     const inAuthGroup =
       firstSegment === "(auth)" ||
+      firstSegment === "auth" ||
       firstSegment === "login" ||
       firstSegment === "register" ||
       firstSegment === "forgot-password";
@@ -49,7 +58,7 @@ export default function RootLayout() {
     } else if (isAuthenticated && inAuthGroup) {
       router.replace("/(tabs)" as never);
     }
-  }, [isAuthenticated, segments, navigationState?.key, router]);
+  }, [isAuthenticated, authInitialized, segments, navigationState?.key, router]);
 
   return (
     <ThemeProvider value={palette.isDark ? DarkTheme : DefaultTheme}>
@@ -62,6 +71,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="auth/callback" />
         <Stack.Screen
           name="scan/[id]"
           options={{

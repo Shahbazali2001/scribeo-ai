@@ -28,9 +28,15 @@ export default function ScanDetailScreen() {
   const router = useRouter();
   const palette = useAppTheme();
 
-  const scan = useAppStore((s) =>
-    id ? s.scans.find((item) => item.id === id) ?? s.ephemeralFailedScans[id] : undefined
-  );
+  const scan = useAppStore((s) => {
+    if (!id) return undefined;
+    const resolvedId = s.scanIdAliases[id] ?? id;
+    return (
+      s.scans.find((item) => item.id === resolvedId) ??
+      s.ephemeralFailedScans[resolvedId] ??
+      s.ephemeralFailedScans[id]
+    );
+  });
   const speechSpeed = useAppStore((s) => s.profile.settings.speechSpeed);
   const defaultConsent = useAppStore((s) => s.profile.settings.consentForTraining);
 
@@ -51,13 +57,6 @@ export default function ScanDetailScreen() {
   const [feedbackCorrectedText, setFeedbackCorrectedText] = useState('');
   const [feedbackConsent, setFeedbackConsent] = useState(defaultConsent);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-
-  useEffect(() => {
-    if (scan?.text) {
-      setEditedText(scan.text);
-      setFeedbackCorrectedText(scan.text);
-    }
-  }, [scan?.text]);
 
   useEffect(() => {
     return () => {
@@ -133,10 +132,12 @@ export default function ScanDetailScreen() {
     );
   }
 
-  // 2. Failed / Edge-Case State (NOT_ENGLISH, NO_TEXT_FOUND, NETWORK_ERROR, etc.)
+  // 2. Failed / Edge-Case State (NOT_ENGLISH, NO_TEXT_FOUND, NETWORK_ERROR, MODEL_BUSY, etc.)
   if (scan.status === 'failed') {
     const isNotEnglish = scan.errorCode === 'NOT_ENGLISH';
     const isNetworkError = scan.errorCode === 'NETWORK_ERROR';
+    const isModelBusy = scan.errorCode === 'MODEL_BUSY';
+    const isRetryable = isNetworkError || isModelBusy;
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: palette.bg }]}>
         <View style={styles.scrollContent}>
@@ -157,13 +158,13 @@ export default function ScanDetailScreen() {
             <View
               style={[styles.failedIconWrap, { backgroundColor: palette.amberSoft }]}>
               <Text style={{ fontSize: 24 }}>
-                {isNotEnglish ? '🌐' : isNetworkError ? '📡' : '🔍'}
+                {isNotEnglish ? '🌐' : isRetryable ? '📡' : '🔍'}
               </Text>
             </View>
             <View style={[styles.failedBadge, { backgroundColor: palette.amberSoft }]}>
               <Text style={[styles.failedBadgeText, { color: palette.amber }]}>
                 {scan.errorCode || 'SCAN_FAILED'} •{' '}
-                {isNetworkError
+                {isRetryable
                   ? `IDEMPOTENCY-KEY: ${scan.idempotencyKey.slice(0, 8)}`
                   : 'NOT SAVED TO HISTORY'}
               </Text>
@@ -174,7 +175,9 @@ export default function ScanDetailScreen() {
                 ? 'Sorry, I can only read English handwriting right now.'
                 : isNetworkError
                   ? 'Upload Interrupted (Offline)'
-                  : 'No Readable Handwriting Found'}
+                  : isModelBusy
+                    ? 'OCR Service Unavailable'
+                    : 'No Readable Handwriting Found'}
             </Text>
 
             <Text style={[styles.failedBody, { color: palette.textSecondary }]}>
@@ -193,19 +196,19 @@ export default function ScanDetailScreen() {
                 },
               ]}>
               <Text style={[styles.tipsTitle, { color: palette.text }]}>
-                {isNetworkError
+                {isRetryable
                   ? 'Idempotent Retry Guarantee:'
                   : 'Tips for best accuracy:'}
               </Text>
               <Text style={[styles.tipsBody, { color: palette.textSecondary }]}>
-                {isNetworkError
+                {isRetryable
                   ? `• Your photo is preserved locally\n• Retrying sends the same Idempotency-Key (${scan.idempotencyKey.slice(0, 12)}...)\n• Exactly one scan is created and quota is never double-counted`
                   : '• Write in clear English using dark ink on light paper\n• Hold the camera directly above the page in bright light\n• Keep lines horizontal and avoid strong shadows'}
               </Text>
             </View>
 
             <View style={styles.failedActionRow}>
-              {isNetworkError ? (
+              {isRetryable ? (
                 <Pressable
                   onPress={() => {
                     void appStore.retryFailedScan(scan.id);
@@ -278,7 +281,7 @@ export default function ScanDetailScreen() {
       setEditError('Scan text cannot be empty.');
       return;
     }
-    const res = appStore.updateScanText(scan.id, editedText, scan.textVersion);
+    const res = await apiClient.updateScanText(scan.id, editedText, scan.textVersion);
     if (!res.ok) {
       setEditError(res.error || 'Could not update text.');
       return;
@@ -341,7 +344,10 @@ export default function ScanDetailScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => setFeedbackModalVisible(true)}
+            onPress={() => {
+              setFeedbackCorrectedText(scan.text || '');
+              setFeedbackModalVisible(true);
+            }}
             style={[
               styles.rateBtn,
               { backgroundColor: palette.surface, borderColor: palette.border },

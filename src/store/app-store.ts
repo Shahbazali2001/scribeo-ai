@@ -1,3 +1,6 @@
+import type { Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
+
 import {
   ApiErrorCode,
   SamplePresetType,
@@ -9,7 +12,18 @@ import {
   UserProfile,
   UserSettings,
 } from '@/types/api';
+import {
+  configureGoogleSignIn,
+  signInWithGoogleNative,
+  signOutFromGoogle,
+} from '@/lib/google-auth';
 import { countWords, generateIdempotencyKey } from '@/lib/idempotency';
+import {
+  fetchBackendState,
+  ScanUploadError,
+  uploadScanRequest,
+} from '@/lib/scan-upload';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 const STORAGE_KEY = 'scribeo_ai_app_state_v2';
 
@@ -249,21 +263,28 @@ function getNextUtcMidnightIso(): string {
   return tomorrow.toISOString();
 }
 
-interface StoredAccount {
-  id: string;
-  email: string;
-  password: string;
-  displayName: string;
-  authProvider: 'email' | 'google';
+function deriveDisplayName(email: string, metadata?: Record<string, unknown>): string {
+  const fullName =
+    (typeof metadata?.full_name === 'string' && metadata.full_name.trim()) ||
+    (typeof metadata?.name === 'string' && metadata.name.trim()) ||
+    '';
+  if (fullName) return fullName;
+  if (!email) return 'Scribeo User';
+  return email
+    .split('@')[0]
+    .replace(/[._-]/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export interface AppState {
   isAuthenticated: boolean;
+  authInitialized: boolean;
   accessToken: string | null;
   profile: UserProfile;
   usage: UsageStats;
   scans: Scan[];
   ephemeralFailedScans: Record<string, Scan>;
+  scanIdAliases: Record<string, string>;
   simulateOffline: boolean;
   pendingDraftImageUri: string | null;
   apiMode: 'hybrid' | 'live';
@@ -274,19 +295,11 @@ type Listener = () => void;
 
 class AppStore {
   private listeners = new Set<Listener>();
-
-  private accounts: Record<string, StoredAccount> = {
-    'alex.morgan@example.com': {
-      id: 'user-demo-1',
-      email: 'alex.morgan@example.com',
-      password: 'password123',
-      displayName: 'Alex Morgan',
-      authProvider: 'email',
-    },
-  };
+  private liveUploadMeta = new Map<string, { isLiveUpload: boolean }>();
 
   private state: AppState = {
-    isAuthenticated: false, // Starts on Login screen so authentication flow works properly
+    isAuthenticated: false,
+    authInitialized: false,
     accessToken: null,
     profile: {
       id: 'user-demo-1',
@@ -310,6 +323,7 @@ class AppStore {
     },
     scans: INITIAL_SCANS,
     ephemeralFailedScans: {},
+    scanIdAliases: {},
     simulateOffline: false,
     pendingDraftImageUri: null,
     apiMode: 'hybrid',
@@ -326,14 +340,19 @@ class AppStore {
         const raw = globalThis.localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed.accounts) {
-            this.accounts = { ...this.accounts, ...parsed.accounts };
-          }
           if (parsed.state) {
+            const isDemoToken =
+              typeof parsed.state.accessToken === 'string' &&
+              parsed.state.accessToken.startsWith('sb-demo-jwt');
             this.state = {
               ...this.state,
               ...parsed.state,
+              // Real Supabase sessions are hydrated authoritatively in initAuth()
+              isAuthenticated: isDemoToken ? Boolean(parsed.state.isAuthenticated) : false,
+              accessToken: isDemoToken ? parsed.state.accessToken : null,
+              authInitialized: false,
               ephemeralFailedScans: {},
+              scanIdAliases: {},
             };
           }
         }
@@ -349,7 +368,6 @@ class AppStore {
         globalThis.localStorage.setItem(
           STORAGE_KEY,
           JSON.stringify({
-            accounts: this.accounts,
             state: {
               isAuthenticated: this.state.isAuthenticated,
               accessToken: this.state.accessToken,
@@ -384,11 +402,79 @@ class AppStore {
     this.listeners.forEach((l) => l());
   }
 
-  // Auth actions with real validation
-  signInWithEmail(
+  private applySupabaseSession(session: Session | null, event?: string) {
+    if (session?.user) {
+      const user = session.user;
+      const email = user.email ?? '';
+      const provider = user.app_metadata?.provider === 'google' ? 'google' : 'email';
+      const displayName = deriveDisplayName(email, user.user_metadata);
+
+      this.setState((prev) => ({
+        ...prev,
+        isAuthenticated: true,
+        authInitialized: true,
+        accessToken: session.access_token,
+        profile: {
+          ...prev.profile,
+          id: user.id,
+          email,
+          displayName,
+          authProvider: provider,
+          createdAt: user.created_at ?? prev.profile.createdAt,
+        },
+      }));
+      void this.syncFromBackend();
+      return;
+    }
+
+    // Preserve active local demo session on initial check unless explicitly signed out
+    const isDemoSession =
+      event !== 'SIGNED_OUT' && Boolean(this.state.accessToken?.startsWith('sb-demo-jwt'));
+
+    this.setState((prev) => ({
+      ...prev,
+      authInitialized: true,
+      ...(isDemoSession
+        ? {}
+        : {
+            isAuthenticated: false,
+            accessToken: null,
+          }),
+    }));
+  }
+
+  initAuth(): () => void {
+    configureGoogleSignIn();
+
+    if (!isSupabaseConfigured) {
+      this.setState({ authInitialized: true });
+      return () => {};
+    }
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        this.applySupabaseSession(session, 'INITIAL_SESSION');
+      })
+      .catch(() => {
+        this.setState({ authInitialized: true });
+      });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      this.applySupabaseSession(session, event);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }
+
+  async signInWithEmail(
     email: string,
-    password?: string
-  ): { ok: boolean; error?: string } {
+    password: string
+  ): Promise<{ ok: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return { ok: false, error: 'Please enter a valid email address.' };
@@ -396,48 +482,35 @@ class AppStore {
     if (!password || password.length < 6) {
       return { ok: false, error: 'Password must be at least 6 characters.' };
     }
-
-    const existing = this.accounts[cleanEmail];
-    if (existing && existing.password !== password) {
+    if (!isSupabaseConfigured) {
       return {
         ok: false,
-        error: 'Incorrect password for this account. Try "password123" for the demo account or reset your password.',
+        error:
+          'Supabase is not configured. Check EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env.',
       };
     }
 
-    const account: StoredAccount = existing ?? {
-      id: `user-${Date.now()}`,
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: cleanEmail,
       password,
-      displayName: cleanEmail
-        .split('@')[0]
-        .replace(/[._-]/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase()),
-      authProvider: 'email',
-    };
-    this.accounts[cleanEmail] = account;
+    });
 
-    this.setState((prev) => ({
-      ...prev,
-      isAuthenticated: true,
-      accessToken: `sb-jwt-${Date.now()}`,
-      profile: {
-        ...prev.profile,
-        id: account.id,
-        email: account.email,
-        displayName: account.displayName,
-        authProvider: 'email',
-      },
-    }));
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+
+    if (data.session) {
+      this.applySupabaseSession(data.session, 'SIGNED_IN');
+    }
 
     return { ok: true };
   }
 
-  signUpWithEmail(
+  async signUpWithEmail(
     displayName: string,
     email: string,
-    password?: string
-  ): { ok: boolean; error?: string } {
+    password: string
+  ): Promise<{ ok: boolean; error?: string; needsEmailConfirmation?: boolean }> {
     const cleanName = displayName.trim();
     const cleanEmail = email.trim().toLowerCase();
 
@@ -450,78 +523,102 @@ class AppStore {
     if (!password || password.length < 8) {
       return { ok: false, error: 'Password must be at least 8 characters long.' };
     }
-    if (this.accounts[cleanEmail]) {
+    if (!isSupabaseConfigured) {
       return {
         ok: false,
-        error: 'An account with this email already exists. Please sign in instead.',
+        error:
+          'Supabase is not configured. Check EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env.',
       };
     }
 
-    const newAccount: StoredAccount = {
-      id: `user-${Date.now()}`,
+    const { data, error } = await supabase.auth.signUp({
       email: cleanEmail,
       password,
-      displayName: cleanName,
-      authProvider: 'email',
-    };
-    this.accounts[cleanEmail] = newAccount;
-
-    this.setState((prev) => ({
-      ...prev,
-      isAuthenticated: true,
-      accessToken: `sb-jwt-${Date.now()}`,
-      profile: {
-        ...prev.profile,
-        id: newAccount.id,
-        email: newAccount.email,
-        displayName: newAccount.displayName,
-        authProvider: 'email',
-        createdAt: new Date().toISOString(),
+      options: {
+        data: { full_name: cleanName },
       },
-    }));
+    });
 
-    return { ok: true };
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+
+    if (data.session) {
+      this.applySupabaseSession(data.session, 'SIGNED_IN');
+      return { ok: true, needsEmailConfirmation: false };
+    }
+
+    return { ok: true, needsEmailConfirmation: true };
   }
 
-  resetPassword(email: string, newPassword?: string): { ok: boolean; error?: string } {
+  async resetPassword(email: string): Promise<{ ok: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return { ok: false, error: 'Please enter a valid email address.' };
     }
-    if (this.accounts[cleanEmail] && newPassword && newPassword.length >= 6) {
-      this.accounts[cleanEmail].password = newPassword;
-      this.persistToStorage();
+    if (!isSupabaseConfigured) {
+      return {
+        ok: false,
+        error:
+          'Supabase is not configured. Check EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env.',
+      };
     }
+
+    const redirectTo = Linking.createURL('/(auth)/login');
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo,
+    });
+
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+
     return { ok: true };
   }
 
-  signInWithGoogle(): { ok: boolean } {
-    const googleEmail = 'alex.morgan@gmail.com';
-    this.accounts[googleEmail] = {
-      id: 'user-google-1',
-      email: googleEmail,
-      password: 'google-oauth-token',
-      displayName: 'Alex Morgan',
-      authProvider: 'google',
-    };
+  async signInWithGoogle(): Promise<{ ok: boolean; cancelled?: boolean; error?: string }> {
+    const result = await signInWithGoogleNative();
+    if (!result.ok) {
+      return {
+        ok: false,
+        cancelled: result.cancelled,
+        error: result.error,
+      };
+    }
 
+    if (result.session) {
+      this.applySupabaseSession(result.session, 'SIGNED_IN');
+    }
+
+    return { ok: true };
+  }
+
+  signInDemo(): { ok: boolean } {
     this.setState((prev) => ({
       ...prev,
       isAuthenticated: true,
-      accessToken: `sb-google-jwt-${Date.now()}`,
+      authInitialized: true,
+      accessToken: `sb-demo-jwt-${Date.now()}::user-demo-1::alex.morgan@example.com`,
       profile: {
         ...prev.profile,
-        id: 'user-google-1',
-        email: googleEmail,
+        id: 'user-demo-1',
+        email: 'alex.morgan@example.com',
         displayName: 'Alex Morgan',
-        authProvider: 'google',
+        authProvider: 'email',
       },
     }));
-
     return { ok: true };
   }
 
-  signOut() {
+  async signOut(): Promise<void> {
+    await signOutFromGoogle();
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // Clear local state even if network sign-out fails
+      }
+    }
     this.setState((prev) => ({
       ...prev,
       isAuthenticated: false,
@@ -529,9 +626,15 @@ class AppStore {
     }));
   }
 
-  deleteAccount() {
-    const currentEmail = this.state.profile.email.toLowerCase();
-    delete this.accounts[currentEmail];
+  async deleteAccount(): Promise<void> {
+    await signOutFromGoogle();
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+    }
     this.setState((prev) => ({
       ...prev,
       isAuthenticated: false,
@@ -547,12 +650,12 @@ class AppStore {
   }
 
   updateProfile(updates: { displayName?: string; settings?: Partial<UserSettings> }) {
+    const isRealSession = Boolean(
+      this.state.accessToken && !this.state.accessToken.startsWith('sb-demo-jwt')
+    );
+
     this.setState((prev) => {
       const nextName = updates.displayName ?? prev.profile.displayName;
-      const emailKey = prev.profile.email.toLowerCase();
-      if (this.accounts[emailKey]) {
-        this.accounts[emailKey].displayName = nextName;
-      }
       return {
         ...prev,
         profile: {
@@ -565,6 +668,12 @@ class AppStore {
         },
       };
     });
+
+    if (updates.displayName && isRealSession && isSupabaseConfigured) {
+      void supabase.auth.updateUser({
+        data: { full_name: updates.displayName },
+      });
+    }
   }
 
   setApiMode(mode: 'hybrid' | 'live', apiBaseUrl?: string) {
@@ -572,6 +681,75 @@ class AppStore {
       ...prev,
       apiMode: mode,
       apiBaseUrl: apiBaseUrl ?? prev.apiBaseUrl,
+    }));
+    if (mode === 'live') {
+      void this.syncFromBackend();
+    }
+  }
+
+  async syncFromBackend(): Promise<void> {
+    const { accessToken, apiBaseUrl, simulateOffline } = this.state;
+    if (!accessToken || simulateOffline || accessToken.startsWith('sb-demo-jwt')) {
+      return;
+    }
+
+    try {
+      const { me, scans } = await fetchBackendState({ apiBaseUrl, accessToken });
+      this.setState((prev) => {
+        const serverName = me.profile.displayName?.trim() || '';
+        const isServerPlaceholder =
+          (serverName === 'Alex Morgan' || serverName === 'Scribeo User') &&
+          prev.profile.email.toLowerCase() !== 'alex.morgan@example.com';
+        return {
+          ...prev,
+          usage: me.usage,
+          scans: scans.items,
+          profile: {
+            ...prev.profile,
+            displayName: !isServerPlaceholder && serverName ? serverName : prev.profile.displayName,
+            settings: {
+              ...prev.profile.settings,
+              ...me.profile.settings,
+            },
+          },
+        };
+      });
+    } catch {
+      // Backend offline — stay usable with local state in hybrid mode
+    }
+  }
+
+  upsertScanFromServer(scan: Scan) {
+    this.setState((prev) => {
+      const exists = prev.scans.some((s) => s.id === scan.id);
+      return {
+        ...prev,
+        scans: exists
+          ? prev.scans.map((s) => (s.id === scan.id ? scan : s))
+          : [scan, ...prev.scans],
+      };
+    });
+  }
+
+  applySummaryFromServer(scanId: string, summary: Summary) {
+    this.setState((prev) => ({
+      ...prev,
+      usage: {
+        ...prev.usage,
+        summariesUsed: prev.usage.summariesUsed + 1,
+      },
+      scans: prev.scans.map((s) =>
+        s.id === scanId
+          ? {
+              ...s,
+              summaries: {
+                ...s.summaries,
+                [summary.style]: summary,
+              },
+              updatedAt: summary.createdAt,
+            }
+          : s
+      ),
     }));
   }
 
@@ -582,23 +760,117 @@ class AppStore {
     }));
   }
 
+  private async runLiveScanUpload(
+    tempScanId: string,
+    processingScan: Scan,
+    imageUri: string,
+    idemKey: string
+  ): Promise<void> {
+    try {
+      const serverScan = await uploadScanRequest({
+        apiBaseUrl: this.state.apiBaseUrl,
+        accessToken: this.state.accessToken,
+        imageUri,
+        idempotencyKey: idemKey,
+      });
+
+      const resolvedImageUrl =
+        serverScan.imageUrl && !serverScan.imageUrl.includes('placeholder.supabase.co')
+          ? serverScan.imageUrl
+          : processingScan.imageUrl;
+
+      const normalizedScan: Scan = {
+        ...serverScan,
+        imageUrl: resolvedImageUrl,
+      };
+
+      if (normalizedScan.status === 'done') {
+        this.liveUploadMeta.delete(tempScanId);
+        this.setState((prev) => {
+          const nextEphemeral = { ...prev.ephemeralFailedScans };
+          delete nextEphemeral[tempScanId];
+          const withoutDup = prev.scans.filter((s) => s.id !== normalizedScan.id);
+          return {
+            ...prev,
+            ephemeralFailedScans: nextEphemeral,
+            scanIdAliases: {
+              ...prev.scanIdAliases,
+              [tempScanId]: normalizedScan.id,
+            },
+            scans: [normalizedScan, ...withoutDup],
+            usage: {
+              ...prev.usage,
+              scansUsed: Math.min(prev.usage.scansLimit, prev.usage.scansUsed + 1),
+            },
+          };
+        });
+        void this.syncFromBackend();
+      } else {
+        this.setState((prev) => ({
+          ...prev,
+          ephemeralFailedScans: {
+            ...prev.ephemeralFailedScans,
+            [tempScanId]: {
+              ...normalizedScan,
+              id: tempScanId,
+              imageUrl: processingScan.imageUrl,
+            },
+          },
+        }));
+      }
+    } catch (err) {
+      const errorCode: ApiErrorCode =
+        err instanceof ScanUploadError
+          ? (err.code as ApiErrorCode)
+          : 'NETWORK_ERROR';
+      const errorMessage =
+        err instanceof ScanUploadError
+          ? err.message
+          : `Could not reach the backend at ${this.state.apiBaseUrl}. Make sure FastAPI (port 4000) and ocr-service (port 8000) are running, then tap Retry.`;
+
+      this.setState((prev) => ({
+        ...prev,
+        ephemeralFailedScans: {
+          ...prev.ephemeralFailedScans,
+          [tempScanId]: {
+            ...processingScan,
+            status: 'failed',
+            errorCode,
+            errorMessage,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      }));
+    }
+  }
+
   async retryFailedScan(scanId: string): Promise<void> {
     const failed = this.state.ephemeralFailedScans[scanId];
     if (!failed) return;
+
+    const processingScan: Scan = {
+      ...failed,
+      status: 'processing',
+      errorCode: null,
+      errorMessage: null,
+      updatedAt: new Date().toISOString(),
+    };
+
     this.setState((prev) => ({
       ...prev,
       simulateOffline: false,
       ephemeralFailedScans: {
         ...prev.ephemeralFailedScans,
-        [scanId]: {
-          ...failed,
-          status: 'processing',
-          errorCode: null,
-          errorMessage: null,
-          updatedAt: new Date().toISOString(),
-        },
+        [scanId]: processingScan,
       },
     }));
+
+    const wasLive =
+      this.liveUploadMeta.get(scanId)?.isLiveUpload || this.state.apiMode === 'live';
+    if (wasLive) {
+      void this.runLiveScanUpload(scanId, processingScan, failed.imageUrl, failed.idempotencyKey);
+      return;
+    }
 
     setTimeout(() => {
       const targetPreset = SAMPLE_PRESETS.long_lecture_notes;
@@ -639,6 +911,7 @@ class AppStore {
     preset?: SamplePresetType;
     customText?: string;
     idempotencyKey?: string;
+    isRealPhoto?: boolean;
   }): Promise<{ scanId: string; error?: { code: ApiErrorCode; message: string } }> {
     const idemKey = options.idempotencyKey || generateIdempotencyKey();
 
@@ -660,6 +933,9 @@ class AppStore {
     const scanId = `scan-${Date.now()}`;
     const nowIso = new Date().toISOString();
     const presetConfig = options.preset ? SAMPLE_PRESETS[options.preset] : null;
+    const useLiveOcr =
+      !options.customText?.trim() &&
+      (Boolean(options.isRealPhoto) || this.state.apiMode === 'live');
 
     const processingScan: Scan = {
       id: scanId,
@@ -680,6 +956,10 @@ class AppStore {
       createdAt: nowIso,
       updatedAt: nowIso,
     };
+
+    if (useLiveOcr) {
+      this.liveUploadMeta.set(scanId, { isLiveUpload: true });
+    }
 
     this.setState((prev) => ({
       ...prev,
@@ -708,6 +988,11 @@ class AppStore {
           },
         }));
       }, 600);
+      return { scanId };
+    }
+
+    if (useLiveOcr) {
+      void this.runLiveScanUpload(scanId, processingScan, processingScan.imageUrl, idemKey);
       return { scanId };
     }
 
