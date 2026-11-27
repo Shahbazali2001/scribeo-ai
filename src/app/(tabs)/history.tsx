@@ -76,7 +76,7 @@ export default function HistoryScreen() {
             styles.searchBox,
             { backgroundColor: palette.surface, borderColor: palette.border },
           ]}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Text style={styles.searchIcon}></Text>
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -86,7 +86,7 @@ export default function HistoryScreen() {
           />
           {query ? (
             <Pressable onPress={() => setQuery('')} style={styles.clearBtn}>
-              <Text style={[styles.clearBtnText, { color: palette.textMuted }]}>✕</Text>
+              <Text style={[styles.clearBtnText, { color: palette.textMuted }]}></Text>
             </Pressable>
           ) : null}
         </View>
@@ -96,8 +96,8 @@ export default function HistoryScreen() {
           {(
             [
               { id: 'all', label: `All (${scans.length})` },
-              { id: 'summarized', label: '✨ Summarized' },
-              { id: 'low_confidence', label: '⚠️ Needs Review' },
+              { id: 'summarized', label: ' Summarized' },
+              { id: 'low_confidence', label: ' Needs Review' },
             ] as const
           ).map((chip) => {
             const active = filterMode === chip.id;
@@ -132,7 +132,7 @@ export default function HistoryScreen() {
               styles.emptyCard,
               { backgroundColor: palette.surface, borderColor: palette.border },
             ]}>
-            <Text style={{ fontSize: 32 }}>🗂️</Text>
+            <Text style={{ fontSize: 32 }}></Text>
             <Text style={[styles.emptyTitle, { color: palette.text }]}>
               No matching scans found
             </Text>
@@ -200,7 +200,7 @@ export default function HistoryScreen() {
                               styles.metaPillText,
                               { color: palette.textSecondary },
                             ]}>
-                            {scan.wordCount} words • v{scan.textVersion}
+                            {scan.wordCount} words  v{scan.textVersion}
                           </Text>
                         </View>
                         {scan.confidence != null ? (
@@ -232,7 +232,7 @@ export default function HistoryScreen() {
                             ]}>
                             <Text
                               style={[styles.metaPillText, { color: palette.accent }]}>
-                              ✨ {summaryList.length} summary
+                               {summaryList.length} summary
                             </Text>
                           </View>
                         ) : null}

@@ -116,16 +116,16 @@ export default function ScanDetailScreen() {
               { backgroundColor: palette.surface, borderColor: palette.border },
             ]}>
             <Text style={[styles.stepItem, { color: palette.primary }]}>
-              ✓ 1. Uploaded to private Supabase Storage
+               1. Uploaded to private Supabase Storage
             </Text>
             <Text style={[styles.stepItem, { color: palette.accent }]}>
-              ⟳ 2. Detecting text lines (docTR db_mobilenet_v3_large)
+               2. Detecting text lines (docTR db_mobilenet_v3_large)
             </Text>
             <Text style={[styles.stepItem, { color: palette.textSecondary }]}>
-              • 3. Recognizing lines (microsoft/trocr-base-handwritten)
+               3. Recognizing lines (microsoft/trocr-base-handwritten)
             </Text>
             <Text style={[styles.stepItem, { color: palette.textSecondary }]}>
-              • 4. Verifying English language & confidence
+               4. Verifying English language & confidence
             </Text>
           </View>
         </View>
@@ -146,7 +146,7 @@ export default function ScanDetailScreen() {
               styles.backBtn,
               { backgroundColor: palette.surface, borderColor: palette.border },
             ]}>
-            <Text style={[styles.backBtnText, { color: palette.text }]}>← Back</Text>
+            <Text style={[styles.backBtnText, { color: palette.text }]}>Back</Text>
           </Pressable>
 
           <View
@@ -157,12 +157,12 @@ export default function ScanDetailScreen() {
             <View
               style={[styles.failedIconWrap, { backgroundColor: palette.amberSoft }]}>
               <Text style={{ fontSize: 24 }}>
-                {isNotEnglish ? '🌐' : isNetworkError ? '📡' : '🔍'}
+                {isNotEnglish ? '' : isNetworkError ? '' : ''}
               </Text>
             </View>
             <View style={[styles.failedBadge, { backgroundColor: palette.amberSoft }]}>
               <Text style={[styles.failedBadgeText, { color: palette.amber }]}>
-                {scan.errorCode || 'SCAN_FAILED'} •{' '}
+                {scan.errorCode || 'SCAN_FAILED'} {' '}
                 {isNetworkError
                   ? `IDEMPOTENCY-KEY: ${scan.idempotencyKey.slice(0, 8)}`
                   : 'NOT SAVED TO HISTORY'}
@@ -199,8 +199,8 @@ export default function ScanDetailScreen() {
               </Text>
               <Text style={[styles.tipsBody, { color: palette.textSecondary }]}>
                 {isNetworkError
-                  ? `• Your photo is preserved locally\n• Retrying sends the same Idempotency-Key (${scan.idempotencyKey.slice(0, 12)}...)\n• Exactly one scan is created and quota is never double-counted`
-                  : '• Write in clear English using dark ink on light paper\n• Hold the camera directly above the page in bright light\n• Keep lines horizontal and avoid strong shadows'}
+                  ? ` Your photo is preserved locally\n Retrying sends the same Idempotency-Key (${scan.idempotencyKey.slice(0, 12)}...)\n Exactly one scan is created and quota is never double-counted`
+                  : ' Write in clear English using dark ink on light paper\n Hold the camera directly above the page in bright light\n Keep lines horizontal and avoid strong shadows'}
               </Text>
             </View>
 
@@ -212,7 +212,7 @@ export default function ScanDetailScreen() {
                   }}
                   style={[styles.primaryBtnFlex, { backgroundColor: palette.primary }]}>
                   <Text style={styles.primaryBtnText}>
-                    ↻ Retry with Same Idempotency-Key
+                     Retry with Same Idempotency-Key
                   </Text>
                 </Pressable>
               ) : (
@@ -337,7 +337,7 @@ export default function ScanDetailScreen() {
               styles.backBtn,
               { backgroundColor: palette.surface, borderColor: palette.border },
             ]}>
-            <Text style={[styles.backBtnText, { color: palette.text }]}>← Back</Text>
+            <Text style={[styles.backBtnText, { color: palette.text }]}>Back</Text>
           </Pressable>
 
           <Pressable
@@ -346,9 +346,7 @@ export default function ScanDetailScreen() {
               styles.rateBtn,
               { backgroundColor: palette.surface, borderColor: palette.border },
             ]}>
-            <Text style={[styles.rateBtnText, { color: palette.primary }]}>
-              ★ Rate Accuracy
-            </Text>
+            <Text style={[styles.rateBtnText, { color: palette.primary }]}>Rate Accuracy</Text>
           </Pressable>
         </View>
 
@@ -413,7 +411,7 @@ export default function ScanDetailScreen() {
               { backgroundColor: palette.amberSoft, borderColor: palette.amber },
             ]}>
             <Text style={[styles.lowConfTitle, { color: palette.amber }]}>
-              ⚠️ Please Review Recognized Text
+               Please Review Recognized Text
             </Text>
             <Text style={[styles.lowConfBody, { color: palette.text }]}>
               This scan had lower recognition confidence (
@@ -435,7 +433,7 @@ export default function ScanDetailScreen() {
             <View style={styles.suggestionTop}>
               <View style={{ flex: 1, paddingRight: 8 }}>
                 <Text style={[styles.suggestionTitle, { color: palette.accent }]}>
-                  ✨ Long Note Detected ({scan.wordCount} words)
+                   Long Note Detected ({scan.wordCount} words)
                 </Text>
                 <Text style={[styles.suggestionBody, { color: palette.text }]}>
                   Would you like an AI summary of this scan? Summaries are optional and only generated when you request one.
@@ -445,7 +443,7 @@ export default function ScanDetailScreen() {
                 onPress={() => setSummaryPopupDismissed(true)}
                 hitSlop={10}
                 style={{ paddingHorizontal: 6 }}>
-                <Text style={{ color: palette.textMuted, fontWeight: '800' }}>✕</Text>
+                <Text style={{ color: palette.textMuted, fontWeight: '800' }}></Text>
               </Pressable>
             </View>
             <View style={styles.suggestionBtnRow}>
@@ -491,7 +489,7 @@ export default function ScanDetailScreen() {
                 },
               ]}>
               <Text style={[styles.editToggleText, { color: palette.primary }]}>
-                {isEditing ? 'Cancel Edit' : '✏️ Edit Text'}
+                {isEditing ? 'Cancel Edit' : ' Edit Text'}
               </Text>
             </Pressable>
           </View>
@@ -543,7 +541,7 @@ export default function ScanDetailScreen() {
               onPress={() => handleCopy(scan.text || '', 'text')}
               style={[styles.copyBtn, { backgroundColor: palette.primary }]}>
               <Text style={styles.primaryBtnText}>
-                {copiedTarget === 'text' ? '✓ Copied to Clipboard!' : '📋 Copy Text'}
+                {copiedTarget === 'text' ? ' Copied to Clipboard!' : ' Copy Text'}
               </Text>
             </Pressable>
 
@@ -568,8 +566,8 @@ export default function ScanDetailScreen() {
                   },
                 ]}>
                 {speakingTarget === 'text'
-                  ? `⏹ Stop (${speechSpeed}x)`
-                  : `🔊 Listen (${speechSpeed}x)`}
+                  ? ` Stop (${speechSpeed}x)`
+                  : ` Listen (${speechSpeed}x)`}
               </Text>
             </Pressable>
           </View>
@@ -587,7 +585,7 @@ export default function ScanDetailScreen() {
                 AI Summary
               </Text>
               <Text style={[styles.summarySubtitle, { color: palette.textSecondary }]}>
-                AI-generated via Google Gemini • Verify important details
+                AI-generated via Google Gemini  Verify important details
               </Text>
             </View>
             <View
@@ -628,7 +626,7 @@ export default function ScanDetailScreen() {
                       styles.tabBtnText,
                       { color: isSelected ? '#FFFFFF' : palette.text },
                     ]}>
-                    {tab.label} {isCached ? '✓' : ''}
+                    {tab.label} {isCached ? '' : ''}
                   </Text>
                 </Pressable>
               );
@@ -685,8 +683,8 @@ export default function ScanDetailScreen() {
                   ]}>
                   <Text style={[styles.summaryCopyText, { color: palette.primary }]}>
                     {copiedTarget === 'summary'
-                      ? '✓ Summary Copied!'
-                      : '📋 Copy Summary'}
+                      ? ' Summary Copied!'
+                      : ' Copy Summary'}
                   </Text>
                 </Pressable>
 
@@ -712,8 +710,8 @@ export default function ScanDetailScreen() {
                       },
                     ]}>
                     {speakingTarget === 'summary'
-                      ? '⏹ Stop Summary'
-                      : '🔊 Listen Summary'}
+                      ? ' Stop Summary'
+                      : ' Listen Summary'}
                   </Text>
                 </Pressable>
               </View>
@@ -735,7 +733,7 @@ export default function ScanDetailScreen() {
                 onPress={() => handleRequestSummary(activeSummaryStyle)}
                 style={[styles.generateBtn, { backgroundColor: palette.primary }]}>
                 <Text style={styles.primaryBtnText}>
-                  ✨ Generate {activeSummaryStyle} Summary
+                   Generate {activeSummaryStyle} Summary
                 </Text>
               </Pressable>
             </View>
@@ -761,14 +759,14 @@ export default function ScanDetailScreen() {
               </Text>
               <Pressable onPress={() => setFeedbackModalVisible(false)}>
                 <Text style={{ fontSize: 16, fontWeight: '800', color: palette.textMuted }}>
-                  ✕
+                  
                 </Text>
               </Pressable>
             </View>
 
             {feedbackSubmitted ? (
               <View style={styles.thankYouWrap}>
-                <Text style={{ fontSize: 32 }}>🎉</Text>
+                <Text style={{ fontSize: 32 }}></Text>
                 <Text style={[styles.thankYouText, { color: palette.primary }]}>
                   Thank you for your feedback!
                 </Text>
@@ -795,7 +793,7 @@ export default function ScanDetailScreen() {
                         },
                       ]}>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: palette.text }}>
-                        ⭐ {star}
+                         {star}
                       </Text>
                     </Pressable>
                   ))}

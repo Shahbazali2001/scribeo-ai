@@ -5,15 +5,13 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useAppStore } from '@/hooks/use-app-store';
 import { useAppTheme } from '@/hooks/use-app-theme';
 
-function TabIcon({
-  icon,
+function TabLabel({
   label,
   focused,
   activeColor,
   inactiveColor,
   activeBg,
 }: {
-  icon: string;
   label: string;
   focused: boolean;
   activeColor: string;
@@ -26,7 +24,6 @@ function TabIcon({
         styles.tabItem,
         focused ? { backgroundColor: activeBg } : null,
       ]}>
-      <Text style={[styles.iconText, { opacity: focused ? 1 : 0.65 }]}>{icon}</Text>
       <Text
         style={[
           styles.labelText,
@@ -55,9 +52,9 @@ export default function TabsLayout() {
           backgroundColor: palette.tabBarBg,
           borderTopColor: palette.tabBarBorder,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 86 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-          paddingTop: 6,
+          height: Platform.OS === 'ios' ? 76 : 60,
+          paddingBottom: Platform.OS === 'ios' ? 16 : 8,
+          paddingTop: 8,
         },
       }}>
       <Tabs.Screen
@@ -65,8 +62,7 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              icon="🏠"
+            <TabLabel
               label="Home"
               focused={focused}
               activeColor={palette.primary}
@@ -81,8 +77,7 @@ export default function TabsLayout() {
         options={{
           title: 'Scan',
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              icon="📷"
+            <TabLabel
               label="Scan"
               focused={focused}
               activeColor={palette.primary}
@@ -97,8 +92,7 @@ export default function TabsLayout() {
         options={{
           title: 'History',
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              icon="📚"
+            <TabLabel
               label="History"
               focused={focused}
               activeColor={palette.primary}
@@ -113,8 +107,7 @@ export default function TabsLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              icon="⚙️"
+            <TabLabel
               label="Settings"
               focused={focused}
               activeColor={palette.primary}
@@ -133,9 +126,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 5,
+    paddingVertical: 7,
     borderRadius: 14,
   },
-  iconText: { fontSize: 18 },
-  labelText: { fontSize: 11, fontWeight: '700', marginTop: 2 },
+  labelText: { fontSize: 12, fontWeight: '700' },
 });
