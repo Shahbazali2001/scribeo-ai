@@ -36,7 +36,7 @@ export default function RegisterScreen() {
     const res = appStore.signUpWithEmail(displayName, email, password);
     if (!res.ok) {
       await triggerHaptic('error');
-      setError(res.error || 'Could not create account.');
+      setError('Could not create account.');
       return;
     }
 
@@ -46,13 +46,10 @@ export default function RegisterScreen() {
 
   const handleGoogleRegister = async () => {
     setError(null);
-    const res = appStore.signInWithGoogle({
-      email: email.trim() || 'alex.morgan@gmail.com',
-      displayName: displayName.trim() || 'Alex Morgan',
-    });
+    const res = appStore.signInWithGoogle();
     if (!res.ok) {
       await triggerHaptic('error');
-      setError(res.error || 'Could not sign up with Google.');
+      setError('Could not sign up with Google.');
       return;
     }
     await triggerHaptic('success');

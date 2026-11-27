@@ -69,7 +69,7 @@ export default function LoginScreen() {
 
     if (!result.ok) {
       await triggerHaptic('error');
-      setError(result.error || 'Could not sign in.');
+      setError('Could not sign in.');
       return;
     }
 
@@ -87,14 +87,11 @@ export default function LoginScreen() {
 
   const handleSelectGoogleAccount = async (selectedEmail: string, selectedName: string) => {
     setGoogleError(null);
-    const result = appStore.signInWithGoogle({
-      email: selectedEmail,
-      displayName: selectedName,
-    });
+    const result = appStore.signInWithGoogle();
 
     if (!result.ok) {
       await triggerHaptic('error');
-      setGoogleError(result.error || 'Could not sign in with Google.');
+      setGoogleError('Could not sign in with Google.');
       return;
     }
 
