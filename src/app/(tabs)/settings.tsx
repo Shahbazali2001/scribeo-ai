@@ -89,7 +89,7 @@ export default function SettingsScreen() {
               },
             ]}>
             <Text style={[styles.savedBannerText, { color: palette.primary }]}>
-              ✓ Profile settings updated
+               Profile settings updated
             </Text>
           </View>
         ) : null}
@@ -109,14 +109,14 @@ export default function SettingsScreen() {
                 Active mode: {isDark ? 'Dark (Obsidian Teal)' : 'Light (Editorial Paper)'}
               </Text>
             </View>
-            <Text style={{ fontSize: 20 }}>{isDark ? '🌙' : '☀️'}</Text>
+            <Text style={{ fontSize: 20 }}>{isDark ? '' : ''}</Text>
           </View>
           <View style={styles.segmentRow}>
             {(
               [
-                { id: 'light', label: '☀️ Light' },
-                { id: 'dark', label: '🌙 Dark' },
-                { id: 'system', label: '📱 System' },
+                { id: 'light', label: ' Light' },
+                { id: 'dark', label: ' Dark' },
+                { id: 'system', label: ' System' },
               ] as const
             ).map((t) => {
               const active = profile.settings.theme === t.id;
@@ -256,12 +256,12 @@ export default function SettingsScreen() {
               },
             ]}>
             <Text style={[styles.privacyTitle, { color: palette.text }]}>
-              🔒 Security & Privacy Notice
+               Security & Privacy Notice
             </Text>
             <Text style={[styles.privacyBody, { color: palette.textSecondary }]}>
-              • Handwritten photos are stored in a private Supabase bucket and viewed via short-lived signed URLs.{'\n'}
-              • Location (EXIF) metadata is stripped on your device before upload.{'\n'}
-              • When you tap Summarize, recognized text is sent to Google Gemini API by our backend (treated strictly as data, never instructions).
+               Handwritten photos are stored in a private Supabase bucket and viewed via short-lived signed URLs.{'\n'}
+               Location (EXIF) metadata is stripped on your device before upload.{'\n'}
+               When you tap Summarize, recognized text is sent to Google Gemini API by our backend (treated strictly as data, never instructions).
             </Text>
             <Pressable
               onPress={() => router.push('/privacy' as never)}
@@ -270,7 +270,7 @@ export default function SettingsScreen() {
                 { backgroundColor: palette.surface, borderColor: palette.border },
               ]}>
               <Text style={[styles.privacyLinkText, { color: palette.primary }]}>
-                Read Full Privacy Policy →
+                Read Full Privacy Policy 
               </Text>
             </Pressable>
           </View>

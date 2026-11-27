@@ -202,7 +202,7 @@ export default function ScanCaptureScreen() {
                 marginTop: 2,
               }}
             >
-              Capture with phone camera or pick from gallery • EXIF stripped
+              Capture with phone camera or pick from gallery  EXIF stripped
             </Text>
           </View>
           <View
@@ -239,7 +239,7 @@ export default function ScanCaptureScreen() {
             <Text
               style={{ color: palette.danger, fontSize: 13, fontWeight: "700" }}
             >
-              ⚠️ {errorMessage}
+               {errorMessage}
             </Text>
           </View>
         ) : null}
@@ -253,7 +253,7 @@ export default function ScanCaptureScreen() {
               { backgroundColor: palette.primary },
             ]}
           >
-            <Text style={styles.primaryActionIcon}>📸</Text>
+            <Text style={styles.primaryActionIcon}></Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.primaryActionTitle}>Open Phone Camera</Text>
               <Text style={styles.primaryActionSub}>
@@ -269,7 +269,7 @@ export default function ScanCaptureScreen() {
               { backgroundColor: palette.bgCard, borderColor: palette.border },
             ]}
           >
-            <Text style={styles.primaryActionIcon}>🖼️</Text>
+            <Text style={styles.primaryActionIcon}></Text>
             <View style={{ flex: 1 }}>
               <Text
                 style={[styles.secondaryActionTitle, { color: palette.text }]}
@@ -336,7 +336,7 @@ export default function ScanCaptureScreen() {
                     fontWeight: "800",
                   }}
                 >
-                  {liveCameraActive ? "Close Live View" : "🎥 Live Viewfinder"}
+                  {liveCameraActive ? "Close Live View" : " Live Viewfinder"}
                 </Text>
               </Pressable>
             ) : null}
@@ -380,7 +380,7 @@ export default function ScanCaptureScreen() {
                   }
                   style={styles.overlayBtn}
                 >
-                  <Text style={styles.overlayBtnText}>🔄 Flip</Text>
+                  <Text style={styles.overlayBtnText}> Flip</Text>
                 </Pressable>
               ) : null}
               <Pressable
@@ -391,7 +391,7 @@ export default function ScanCaptureScreen() {
                 ]}
               >
                 <Text style={styles.overlayBtnText}>
-                  ⚡ {flashOn ? "Flash ON" : "Flash"}
+                   {flashOn ? "Flash ON" : "Flash"}
                 </Text>
               </Pressable>
               <Pressable
@@ -425,7 +425,7 @@ export default function ScanCaptureScreen() {
                     fontWeight: "700",
                   }}
                 >
-                  ✕ Clear Photo
+                   Clear Photo
                 </Text>
               </Pressable>
             ) : (
@@ -445,9 +445,7 @@ export default function ScanCaptureScreen() {
                     fontSize: 12,
                     fontWeight: "700",
                   }}
-                >
-                  🖼️ Gallery
-                </Text>
+                >Gallery</Text>
               </Pressable>
             )}
 
@@ -457,8 +455,8 @@ export default function ScanCaptureScreen() {
             >
               <Text style={styles.scanNowText}>
                 {selectedPhotoUri
-                  ? "✦ Scan Selected Photo"
-                  : "✦ Extract Text Now"}
+                  ? " Scan Selected Photo"
+                  : " Extract Text Now"}
               </Text>
             </Pressable>
           </View>
@@ -588,7 +586,7 @@ export default function ScanCaptureScreen() {
                           fontWeight: "800",
                         }}
                       >
-                        ✓
+                        
                       </Text>
                     ) : null}
                   </View>
@@ -717,7 +715,7 @@ export default function ScanCaptureScreen() {
                 fontWeight: "800",
               }}
             >
-              ⚠️ Photo Looks Dark or Blurry
+               Photo Looks Dark or Blurry
             </Text>
             <Text
               style={{

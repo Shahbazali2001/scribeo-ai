@@ -101,9 +101,7 @@ export default function LoginScreen() {
                 styles.pillBadge,
                 { backgroundColor: palette.primarySoft, borderColor: palette.border },
               ]}>
-              <Text style={[styles.pillText, { color: palette.primary }]}>
-                ✦ English Handwriting OCR
-              </Text>
+              <Text style={[styles.pillText, { color: palette.primary }]}>English Handwriting OCR</Text>
             </View>
 
             <Pressable
@@ -113,7 +111,7 @@ export default function LoginScreen() {
                 { backgroundColor: palette.bgCard, borderColor: palette.border },
               ]}>
               <Text style={[styles.themeBtnText, { color: palette.text }]}>
-                {palette.isDark ? '☀️ Light' : '🌙 Dark'} ({themeSetting})
+                {palette.isDark ? ' Light' : ' Dark'} ({themeSetting})
               </Text>
             </Pressable>
           </View>
@@ -121,7 +119,7 @@ export default function LoginScreen() {
           {/* Brand Hero */}
           <View style={styles.brandSection}>
             <View style={[styles.logoBox, { backgroundColor: palette.primary }]}>
-              <Text style={styles.logoLetter}>✒️</Text>
+              <Text style={styles.logoLetter}></Text>
             </View>
             <Text style={[styles.title, { color: palette.text }]}>Scribeo AI</Text>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
@@ -149,7 +147,7 @@ export default function LoginScreen() {
                   { backgroundColor: palette.dangerSoft, borderColor: palette.danger },
                 ]}>
                 <Text style={[styles.errorText, { color: palette.danger }]}>
-                  ⚠️ {error}
+                   {error}
                 </Text>
               </View>
             ) : null}
@@ -231,7 +229,7 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.primaryBtnText}>Sign In →</Text>
+                <Text style={styles.primaryBtnText}>Sign In</Text>
               )}
             </Pressable>
 
@@ -259,7 +257,7 @@ export default function LoginScreen() {
                   <ActivityIndicator color={palette.primary} size="small" />
                 ) : (
                   <Text style={[styles.secondaryBtnText, { color: palette.text }]}>
-                    🌐 Google Sign-In
+                    Google Sign-In
                   </Text>
                 )}
               </Pressable>
@@ -276,7 +274,7 @@ export default function LoginScreen() {
                   },
                 ]}>
                 <Text style={[styles.secondaryBtnText, { color: palette.primary }]}>
-                  ⚡ Instant Demo
+                  Instant Demo
                 </Text>
               </Pressable>
             </View>
