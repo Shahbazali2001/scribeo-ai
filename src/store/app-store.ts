@@ -606,7 +606,7 @@ class AppStore {
         ...failed,
         status: 'done',
         text: targetPreset.text,
-        wordCount: countWords(targetPreset.text),
+        wordCount: countWords(targetPreset.text ?? ''),
         confidence: targetPreset.confidence,
         ocrModelVersion: 'microsoft/trocr-base-handwritten@v1.0',
         language: 'en',
