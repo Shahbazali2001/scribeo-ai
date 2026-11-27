@@ -138,9 +138,7 @@ export default function LoginScreen() {
                 styles.pillBadge,
                 { backgroundColor: palette.primarySoft, borderColor: palette.border },
               ]}>
-              <Text style={[styles.pillText, { color: palette.primary }]}>
-                ✦ English Handwriting OCR
-              </Text>
+              <Text style={[styles.pillText, { color: palette.primary }]}>English Handwriting OCR</Text>
             </View>
 
             <Pressable
@@ -150,7 +148,7 @@ export default function LoginScreen() {
                 { backgroundColor: palette.bgCard, borderColor: palette.border },
               ]}>
               <Text style={[styles.themeBtnText, { color: palette.text }]}>
-                {palette.isDark ? '☀️ Light' : '🌙 Dark'} ({themeSetting})
+                {palette.isDark ? ' Light' : ' Dark'} ({themeSetting})
               </Text>
             </Pressable>
           </View>
@@ -158,7 +156,7 @@ export default function LoginScreen() {
           {/* Brand Hero */}
           <View style={styles.brandSection}>
             <View style={[styles.logoBox, { backgroundColor: palette.primary }]}>
-              <Text style={styles.logoLetter}>✒️</Text>
+              <Text style={styles.logoLetter}></Text>
             </View>
             <Text style={[styles.title, { color: palette.text }]}>Scribeo AI</Text>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
@@ -186,7 +184,7 @@ export default function LoginScreen() {
                   { backgroundColor: palette.dangerSoft, borderColor: palette.danger },
                 ]}>
                 <Text style={[styles.errorText, { color: palette.danger }]}>
-                  ⚠️ {error}
+                   {error}
                 </Text>
               </View>
             ) : null}
@@ -261,7 +259,7 @@ export default function LoginScreen() {
                 },
               ]}>
               <Text style={styles.primaryBtnText}>
-                {loading ? 'Signing in...' : 'Sign In →'}
+                {loading ? 'Signing in...' : 'Sign In '}
               </Text>
             </Pressable>
 
@@ -280,9 +278,7 @@ export default function LoginScreen() {
                   styles.secondaryBtn,
                   { backgroundColor: palette.bgInput, borderColor: palette.border },
                 ]}>
-                <Text style={[styles.secondaryBtnText, { color: palette.text }]}>
-                  🌐 Google Sign-In
-                </Text>
+                <Text style={[styles.secondaryBtnText, { color: palette.text }]}>Google Sign-In</Text>
               </Pressable>
 
               <Pressable
@@ -291,9 +287,7 @@ export default function LoginScreen() {
                   styles.secondaryBtn,
                   { backgroundColor: palette.primarySoft, borderColor: palette.primary },
                 ]}>
-                <Text style={[styles.secondaryBtnText, { color: palette.primary }]}>
-                  ⚡ Instant Demo Login
-                </Text>
+                <Text style={[styles.secondaryBtnText, { color: palette.primary }]}>Instant Demo Login</Text>
               </Pressable>
             </View>
           </View>
@@ -343,7 +337,7 @@ export default function LoginScreen() {
                 onPress={() => setGoogleModalVisible(false)}
                 style={styles.closeBtn}>
                 <Text style={{ color: palette.textMuted, fontSize: 18, fontWeight: '700' }}>
-                  ✕
+                  
                 </Text>
               </Pressable>
             </View>
@@ -355,7 +349,7 @@ export default function LoginScreen() {
                   { backgroundColor: palette.dangerSoft, borderColor: palette.danger },
                 ]}>
                 <Text style={[styles.errorText, { color: palette.danger }]}>
-                  ⚠️ {googleError}
+                   {googleError}
                 </Text>
               </View>
             ) : null}
@@ -471,17 +465,13 @@ export default function LoginScreen() {
                       styles.secondaryBtn,
                       { backgroundColor: palette.bgInput, borderColor: palette.border },
                     ]}>
-                    <Text style={[styles.secondaryBtnText, { color: palette.text }]}>
-                      ← Back
-                    </Text>
+                    <Text style={[styles.secondaryBtnText, { color: palette.text }]}>Back</Text>
                   </Pressable>
 
                   <Pressable
                     onPress={handleCustomGoogleSubmit}
                     style={[styles.secondaryBtn, { backgroundColor: palette.primary, borderColor: palette.primary }]}>
-                    <Text style={[styles.secondaryBtnText, { color: '#FFFFFF' }]}>
-                      Continue →
-                    </Text>
+                    <Text style={[styles.secondaryBtnText, { color: '#FFFFFF' }]}>Continue</Text>
                   </Pressable>
                 </View>
               </View>

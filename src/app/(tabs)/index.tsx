@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+﻿import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -121,7 +121,7 @@ export default function DashboardScreen() {
               <Text
                 style={{ color: palette.text, fontSize: 12, fontWeight: "700" }}
               >
-                {palette.isDark ? "☀️ Light" : "🌙 Dark"}
+                {palette.isDark ? "Light" : "Dark"}
               </Text>
             </Pressable>
 
@@ -161,7 +161,7 @@ export default function DashboardScreen() {
             <Text
               style={{ color: palette.danger, fontSize: 13, fontWeight: "600" }}
             >
-              ⚠️ {bannerError}
+              ⚠{bannerError}
             </Text>
           </View>
         ) : null}
@@ -198,11 +198,6 @@ export default function DashboardScreen() {
                 gallery. Copy text, listen aloud, or generate AI summaries.
               </Text>
             </View>
-            <View
-              style={[styles.heroIconBox, { backgroundColor: palette.primary }]}
-            >
-              <Text style={{ fontSize: 26 }}>📷</Text>
-            </View>
           </View>
 
           <View style={styles.heroBtnRow}>
@@ -210,7 +205,7 @@ export default function DashboardScreen() {
               onPress={handleDirectCameraCapture}
               style={[styles.primaryCta, { backgroundColor: palette.primary }]}
             >
-              <Text style={styles.primaryCtaText}>📸 Take Photo</Text>
+              <Text style={styles.primaryCtaText}>Take Photo</Text>
             </Pressable>
 
             <Pressable
@@ -223,9 +218,7 @@ export default function DashboardScreen() {
                 },
               ]}
             >
-              <Text style={[styles.secondaryCtaText, { color: palette.text }]}>
-                🖼️ Pick from Gallery
-              </Text>
+              <Text style={[styles.secondaryCtaText, { color: palette.text }]}>Pick from Gallery</Text>
             </Pressable>
           </View>
 
@@ -602,13 +595,6 @@ const styles = StyleSheet.create({
   },
   heroTitle: { fontSize: 20, fontWeight: "800" },
   heroSubtitle: { fontSize: 13, lineHeight: 19, marginTop: 6 },
-  heroIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   heroBtnRow: { flexDirection: "row", gap: 10, marginTop: 18 },
   primaryCta: {
     flex: 1,
@@ -687,3 +673,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
 });
+
+
+
