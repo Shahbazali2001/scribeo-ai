@@ -106,7 +106,7 @@ export default function SettingsScreen() {
                 Theme & Appearance
               </Text>
               <Text style={[styles.cardSubtitle, { color: palette.textSecondary }]}>
-                Active mode: {isDark ? 'Dark (Obsidian Teal)' : 'Light (Editorial Paper)'}
+                Active mode: {isDark ? 'Dark (Midnight Blue)' : 'Light (Royal Blue)'}
               </Text>
             </View>
             <Text style={{ fontSize: 20 }}>{isDark ? '' : ''}</Text>
