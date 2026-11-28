@@ -55,7 +55,7 @@ def get_ocr_provider() -> OcrProvider:
 
 
 def get_summary_provider() -> SummaryProvider:
-    if settings.gemini_api_key:
+    if settings.gemini_api_key and not settings.gemini_api_key.startswith("your-"):
         return GeminiSummaryProvider()
     return FakeSummaryProvider()
 

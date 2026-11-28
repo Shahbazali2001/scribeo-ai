@@ -14,9 +14,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "22"
           cache: npm
       - run: npm ci
+      - run: printf '/// <reference types="expo/types" />\n' > expo-env.d.ts
       - run: npx tsc --noEmit
 
   ocr-service-tests:
@@ -32,7 +33,7 @@ jobs:
           python-version: "3.11"
       - run: |
           pip install fastapi httpx pytest pydantic pydantic-settings Pillow python-multipart
-          pytest
+          python -m pytest -v
 
   backend-tests:
     name: Backend API (Pytest)
@@ -40,6 +41,13 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_SERVICE_KEY: dev-service-key
+      SUPABASE_JWT_SECRET: dev-jwt-secret
+      OCR_SERVICE_KEY: dev-ocr-secret-key
+      GEMINI_API_KEY: ""
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,4 +55,4 @@ jobs:
           python-version: "3.11"
       - run: |
           pip install -r requirements.txt
-          pytest
+          python -m pytest -v
