@@ -307,7 +307,7 @@ class AppStore {
       displayName: 'Alex Morgan',
       authProvider: 'email',
       settings: {
-        theme: 'light', // Default to the new Warm Editorial Paper + Emerald/Teal light theme
+        theme: 'light', // Default to the Royal Blue light theme
         speechSpeed: 1.0,
         consentForTraining: false,
       },
